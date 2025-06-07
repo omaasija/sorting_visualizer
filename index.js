@@ -1,5 +1,3 @@
-//COPYRIGHT@OM_AASIJA
-
 let randomize_array = document.getElementById("randomize_array_btn");
 let sort_btn = document.getElementById("sort_btn");
 let bars_container = document.getElementById("bars_container");
