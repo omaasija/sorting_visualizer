@@ -1,15 +1,27 @@
-let randomize_array = document.getElementById("randomize_array_btn");
-let sort_btn = document.getElementById("sort_btn");
+let reset_btn= document.getElementById("reset_btn");
+let start_btn = document.getElementById("start_btn");
+let stop_btn = document.getElementById("stop_btn");
+
+//let randomize_array = document.getElementById("randomize_array_btn");
+//let sort_btn = document.getElementById("sort_btn");
 let bars_container = document.getElementById("bars_container");
 let select_algo = document.getElementById("algo");
 let speed = document.getElementById("speed");
 let slider = document.getElementById("slider");
+let sliderValue = document.getElementById("sliderValue");
 let minRange = 1;
 let maxRange = slider.value;
 let numOfBars = slider.value;
 let heightFactor = 4;
 let speedFactor = 100;
 let unsorted_array = new Array(numOfBars);
+
+sliderValue.textContent = slider.value;
+
+let isSorting = false;          
+let isPaused = false;
+let stopSignal = false; // For reset or stop
+let currentSortPromise = null; // For resuming
 
 slider.addEventListener("input", function () {
   numOfBars = slider.value;
@@ -57,20 +69,110 @@ function renderBars(array) {
   }
 }
 
-randomize_array.addEventListener("click", function () {
-  unsorted_array = createRandomArray();
+function disableUI() {
+  slider.disabled = true;
+  reset_btn.disabled = true;
+  select_algo.disabled = true;
+  speed.disabled = true;
+}
+
+function enableUI() {
+  slider.disabled = false;
+  reset_btn.disabled = false;
+  select_algo.disabled = false;
+  speed.disabled = false;
+}
+
+function resetVisualizer() {
+  slider.value = 50;
+  sliderValue.textContent = 50;
+  numOfBars = 50;
+  maxRange = 50;
+
+
+  select_algo.value = "bubble";
+  speed.value = "100";
+  
   bars_container.innerHTML = "";
+  unsorted_array = createRandomArray();
   renderBars(unsorted_array);
-});
+
+  isSorting = false;
+  isPaused = false;
+  currentSortPromise = null;
+  
+  enableUI();
+}
+
+// randomize_array.addEventListener("click", function () {
+//   unsorted_array = createRandomArray();
+//   bars_container.innerHTML = "";
+//   renderBars(unsorted_array);
+// });
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+//new algo added which is selection sort
+async function selectionSort(array) {
+  let bars = document.getElementsByClassName("bar");
+
+  for (let i = 0; i < array.length; i++) {
+    let minIndex = i;
+
+    bars[minIndex].style.backgroundColor = "red";
+
+    for (let j = i + 1; j < array.length; j++) {
+      bars[j].style.backgroundColor = "orange";
+
+      await sleep(speedFactor);
+
+      if (array[j] < array[minIndex]) {
+        if (minIndex !== i) {
+          bars[minIndex].style.backgroundColor = "aqua";
+        }
+
+        minIndex = j;
+        bars[minIndex].style.backgroundColor = "red";
+      } else {
+        bars[j].style.backgroundColor = "aqua";
+      }
+    }
+
+    if (minIndex !== i) {
+      let temp = array[i];
+      array[i] = array[minIndex];
+      array[minIndex] = temp;
+
+      bars[i].style.height = array[i] * heightFactor + "px";
+      bars[minIndex].style.height = array[minIndex] * heightFactor + "px";
+
+      bars[i].style.backgroundColor = "lightgreen";
+      bars[minIndex].style.backgroundColor = "lightgreen";
+
+      await sleep(speedFactor);
+    }
+
+    for (let k = 0; k < array.length; k++) {
+      if (k !== i) {
+        bars[k].style.backgroundColor = "aqua";
+      }
+    }
+  }
+
+  return array;
+}
+
 
 async function bubbleSort(array) {
   let bars = document.getElementsByClassName("bar");
   for (let i = 0; i < array.length; i++) {
     for (let j = 0; j < array.length - i - 1; j++) {
+
+        while (isPaused) {
+        await sleep(50);
+      }
+      
       if (array[j] > array[j + 1]) {
         for (let k = 0; k < bars.length; k++) {
           if (k !== j && k !== j + 1) {
@@ -108,6 +210,11 @@ async function swap(items, leftIndex, rightIndex, bars) {
 }
 async function partition(items, left, right) {
   let bars = document.getElementsByClassName("bar");
+
+   while (isPaused) {
+        await sleep(50);
+      }
+  
   let pivotIndex = Math.floor((right + left) / 2);
   var pivot = items[pivotIndex]; //middle element
   bars[pivotIndex].style.backgroundColor = "red";
@@ -169,6 +276,9 @@ async function InsertionSort(array) {
     let key = array[i];
     let j = i - 1;
     while (j >= 0 && array[j] > key) {
+            while (isPaused) {
+        await sleep(50);
+      }
       array[j + 1] = array[j];
       bars[j + 1].style.height = array[j + 1] * heightFactor + "px";
       bars[j + 1].style.backgroundColor = "red";
@@ -215,6 +325,9 @@ async function HeapSort(array) {
 
 async function heapify(array, n, i) {
   let bars = document.getElementsByClassName("bar");
+   while (isPaused) {
+        await sleep(50);
+      }
   let largest = i;
   let left = 2 * i + 1;
   let right = 2 * i + 2;
@@ -253,6 +366,11 @@ async function swap(array, i, j, bars) {
 //write mergeSort function
 async function mergeSort(arr) {
   let bars = document.getElementsByClassName("bar");
+
+  while (isPaused) {
+        await sleep(50);
+      }
+  
   if (arr.length < 2) {
     return arr;
   }
@@ -348,7 +466,19 @@ function mergeSortD(arr, start, end) {
   mergeSort(right);
 }
 
-sort_btn.addEventListener("click", function () {
+start_btn.addEventListener("click", function () {
+
+   if (isSorting && isPaused) {
+    // Resume from pause
+    isPaused = false;
+    return;
+  }
+
+  if (isSorting) return; // Already sorting, do nothing
+
+  isSorting = true;
+  disableUI();
+  
   switch (algotouse) {
     case "bubble":
       bubbleSort(unsorted_array);
@@ -368,6 +498,11 @@ sort_btn.addEventListener("click", function () {
     case "heap":
       HeapSort(unsorted_array);
       break;
+      
+       case "selection":
+      currentSortPromise = selectionSort(unsorted_array);
+      break;
+
     case "insertion":
       InsertionSort(unsorted_array);
       break;
@@ -380,4 +515,24 @@ sort_btn.addEventListener("click", function () {
       bubbleSort(unsorted_array);
       break;
   }
+    await currentSortPromise;
+
+  isSorting = false;
+  enableUI();
 });
+stop_btn.addEventListener("click", () => {
+  isPaused = true;
+});
+
+reset_btn.addEventListener("click", function () {
+   if (isSorting && !isPaused) {
+    console.log("Cannot reset while sorting is running.");
+    return;
+  }
+   resetVisualizer();
+});
+
+
+
+
+
